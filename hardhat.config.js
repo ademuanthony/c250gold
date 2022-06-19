@@ -3,9 +3,13 @@ require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 
 module.exports = {
-  defaultNetwork: "matic",
+  defaultNetwork: "localhost",
   networks: {
-    hardhat: {
+    localhost: {
+      forking: {
+        url: "https://polygon-mainnet.g.alchemy.com/v2/"+process.env.ALCHEMY_KEY,
+        blockNumber: 29621988
+      }
     },
     matic: {
       url: "https://rpc-mumbai.maticvigil.com",
@@ -20,7 +24,7 @@ module.exports = {
     apiKey: process.env.POLYGONSCAN_API_KEY
   },
   solidity: {
-    version: "0.8.4",
+    version: "0.7.6",
     settings: {
       optimizer: {
         enabled: true,
