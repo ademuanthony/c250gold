@@ -32,7 +32,7 @@ beforeEach(async function () {
   await contract.launch();
 });
 
-describe("C250Gold", function () {
+describe("C250Gold classic operation", function () {
   it("Should mint initial supply of 250000 and register first account when deployed", async function () {
     const [addr1] = await ethers.getSigners();
 
@@ -246,4 +246,219 @@ describe("C250Gold", function () {
 
     expect(res[0], "Next day").to.be.equal(ethers.utils.parseEther("3.92"))
   });
+});
+
+describe("Upgrade to Premimium", function() {
+  it("Should upgrade a user if the sender has enough funds for premium fee", async function() {
+    const [, addr2,] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address)
+    await contract.upgradeToPremium(2, 176);
+    const isPremium = await contract.accountIsInPremium(2);
+    expect(isPremium).to.be.true;
+  });
+
+  it("Should debit the upgrade fee from the sender", async function() {
+    const [addr1, addr2, addr3] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.upgradeToPremium(2, 176);
+
+    const balanceBefore = await contract.balanceOf(addr1.address);
+    await contract.upgradeToPremium(3, 176);
+    const balanceAfter = await contract.balanceOf(addr1.address);
+
+    expect(balanceBefore).to.be.equal(ethers.utils.parseEther("20").add(balanceAfter));
+  });
+
+  it("Should get ancessor as sponsor for upgrade if upline is not in part", async function() {
+    const [, addr2, addr3, addr4] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.upgradeToPremium(2, 176);
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.registerAndActivate(3, 0, addr4.address);
+
+    await contract.upgradeToPremium(4, 176);
+
+    const uplineID = await contract.getMatrixUpline(4, 1);
+    expect(parseInt(uplineID)).to.be.equal(2);
+  });
+
+  it("Should fail if caller has insufficient fund", async function() {
+    const [addr1, addr2, ] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    const balance = await contract.balanceOf(addr1.address);
+    await contract.transfer(addr2.address, balance);
+
+    await expect(contract.upgradeToPremium(2, 43)).to.be.revertedWith("Insufficient balance")
+  });
+
+  it("Should fail if account not in classic", async function() {
+    const [, addr2, ] = await ethers.getSigners();
+    await contract.register(1, 0, addr2.address);
+
+    await expect(contract.upgradeToPremium(2, 43)).to.be.revertedWith("Classic not activated")
+  });
+
+  it("Should get the right sponsor id", async function() {
+    const [, addr2, addr3, addr4, addr5] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.upgradeToPremium(3, 176);
+
+    await contract.registerAndActivate(2, 0, addr4.address);
+    await contract.upgradeToPremium(4, 176);
+
+    await contract.registerAndActivate(2, 0, addr5.address);
+
+    const uplineID = await contract.getPremiumSponsor(5, 0);
+    expect(parseInt(uplineID)).to.be.equal(2);
+  });
+
+  it("Should arrange spill-over from left to right", async function() {
+    const [, addr2, addr3, addr4, addr5] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.upgradeToPremium(3, 176);
+
+    await contract.registerAndActivate(2, 0, addr4.address);
+    await contract.upgradeToPremium(4, 176);
+
+    await contract.registerAndActivate(2, 0, addr5.address);
+
+    await contract.upgradeToPremium(5, 176);
+
+    const uplineID = await contract.getMatrixUpline(5, 1);
+    expect(parseInt(uplineID)).to.be.equal(3);
+  });
+
+  it("Should transfer referral bonus to the premium upline", async function() {
+    const [, addr2, addr3, addr4, addr5] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.upgradeToPremium(3, 176);
+
+    await contract.registerAndActivate(2, 0, addr4.address);
+    await contract.upgradeToPremium(4, 176);
+
+    await contract.registerAndActivate(2, 0, addr5.address);
+
+    const uplineID = await contract.getPremiumSponsor(5, 0);
+    expect(parseInt(uplineID), "right sponsor").to.be.equal(2);
+
+    const balanceBefore = await contract.balanceOf(addr2.address);
+    await contract.upgradeToPremium(5, 176);
+    const balanceAfter = await contract.balanceOf(addr2.address);
+
+    expect(balanceAfter).to.be.equal(ethers.utils.parseEther("9").add(balanceBefore));
+  });
+
+  it("Should transfer matrix bonus to the matrix upline", async function() {
+    const [, addr2, addr3, addr4, addr5] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.upgradeToPremium(3, 176);
+
+    await contract.registerAndActivate(2, 0, addr4.address);
+    await contract.upgradeToPremium(4, 176);
+
+    await contract.registerAndActivate(2, 0, addr5.address);
+
+    const balanceBefore = await contract.balanceOf(addr3.address);
+    await contract.upgradeToPremium(5, 176);
+    const balanceAfter = await contract.balanceOf(addr3.address);
+
+    expect(balanceAfter).to.be.equal(ethers.utils.parseEther("2.25").add(balanceBefore));
+  });
+
+  it("Should move the user to the next level current is completed", async function() {
+    const [, addr2, addr3, addr4, ] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.upgradeToPremium(3, 176);
+
+    await contract.registerAndActivate(2, 0, addr4.address);
+    await contract.upgradeToPremium(4, 176);
+
+    const user = await contract.getUser(2);
+    expect(user.premiumLevel, "moved to next level").to.be.equal(2);
+
+    const legs = await contract.getDirectLegs(1, 1);
+    expect(parseInt(legs.left), "Placed under the upline").to.be.equal(2);
+  });
+
+  it("Should send matrix bonus of those without beneficiary to the main account", async function() {
+    const [addr1, addr2, addr3, addr4, ] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addr2.address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addr3.address);
+    await contract.upgradeToPremium(3, 176);
+
+    await contract.registerAndActivate(2, 0, addr4.address);
+    
+    const balanceBefore = await contract.balanceOf(addr1.address);
+    await contract.upgradeToPremium(4, 176);
+    const balanceAfter = await contract.balanceOf(addr1.address);
+
+    // the wallet paid 20 for the upgrade and 5 from matrix 2499637825-2499482825
+    expect(balanceAfter).to.be.equal(balanceBefore.sub(ethers.utils.parseEther("15.5")));
+  });
+
+  it("Should add the user to part 2 when he completes part 1", async function() {
+    const [...addresses ] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addresses[1].address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addresses[2].address);
+    await contract.upgradeToPremium(3, 176);
+
+    for(let i = 3; i <= 16; i++) {
+      await contract.registerAndActivate(3, 0, addresses[i].address);
+      await contract.upgradeToPremium(i+1, 176);
+    }
+
+    const user = await contract.getUser(3);
+    expect(user.premiumLevel, "moved to next level").to.be.equal(3);
+
+    const legs = await contract.getDirectLegs(1, 3);
+    expect(parseInt(legs.left), "Placed under the upline").to.be.equal(3);
+  });
+
+  it("Should send pending matrix earning when a user enters a new level", async function() {
+    const [...addresses ] = await ethers.getSigners();
+    await contract.registerAndActivate(1, 0, addresses[1].address);
+    await contract.upgradeToPremium(2, 176);
+
+    await contract.registerAndActivate(2, 0, addresses[2].address);
+    await contract.upgradeToPremium(3, 176);
+
+    for(let i = 3; i <= 6; i++) {
+      await contract.registerAndActivate(3, 0, addresses[i].address);
+      await contract.upgradeToPremium(i+1, 176);
+    }
+
+    await contract.registerAndActivate(1, 0, addresses[7].address);
+    await contract.upgradeToPremium(8, 176);
+
+    await contract.registerAndActivate(1, 0, addresses[8].address);
+
+    const balanceBefore = await contract.balanceOf(addresses[1].address);
+    await contract.upgradeToPremium(9, 176);
+    const balanceAfter = await contract.balanceOf(addresses[1].address);
+
+    // 5 and 2.5 from matrix
+    expect(balanceAfter).to.be.equal(balanceBefore.add(ethers.utils.parseEther("6.75")));
+
+  });
+
 });

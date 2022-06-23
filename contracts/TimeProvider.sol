@@ -4,34 +4,34 @@
 pragma solidity 0.7.6;
 
 contract TimeProvider {
-    uint256 now;
+    uint256 manualTime;
 
     function currentTime() external view returns (uint256 amountOut) {
-        if (now > 0) return now;
+        if (manualTime > 0) return manualTime;
         return block.timestamp;
     }
 
     function setTime(uint256 _now) external {
-        now = _now;
+        manualTime = _now;
     }
 
     function increaseTime(uint256 val) external {
-        if (now > 0) {
-            now = now + val;
+        if (manualTime > 0) {
+            manualTime = manualTime + val;
         } else {
-            now = block.timestamp + val;
+            manualTime = block.timestamp + val;
         }
     }
 
     function decreaseTime(uint256 val) external {
-        if (now > 0) {
-            now = now - val;
+        if (manualTime > 0) {
+            manualTime = manualTime - val;
         } else {
-            now = block.timestamp - val;
+            manualTime = block.timestamp - val;
         }
     }
 
     function reset() external {
-        now = 0;
+        manualTime = 0;
     }
 }
