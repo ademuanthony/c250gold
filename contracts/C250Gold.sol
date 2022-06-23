@@ -89,116 +89,44 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public userAccounts;
 
     constructor(
-        address _priceOracle,
-        address _timeProvider,
-        address _treasury
+        address _priceOracle, address _timeProvider, address _treasury
     ) ERC20("C360Gold", "C250G") {
         classicActivationDays.push(getTheDayBefore(block.number));
-
         priceOracle = C250PriceOracle(_priceOracle);
         timeProvider = TimeProvider(_timeProvider);
-
         treasury = _treasury;
         mint(msg.sender, INITIAL_SUPPLY);
-
         buildClassicConfig();
-
         buildPremiumConfig();
-
         _register(0, 0, msg.sender);
     }
 
     function buildClassicConfig() private {
-        // classicConfigurations[1] = ClassicConfig(1, 0, 10, 25 * 1e16, 10);
-        // classicConfigurations[2] = ClassicConfig(3, 12, 20, 25 * 1e16, 20);
-        // classicConfigurations[3] = ClassicConfig(3, 12, 30, 28 * 1e16, 20);
+        // @dev lower global requirement for testing
+        classicConfigurations[1] = ClassicConfig(1, 0, 10, 25 * 1e16, 10);
+        classicConfigurations[2] = ClassicConfig(3, 12, 20, 25 * 1e16, 20);
+        classicConfigurations[3] = ClassicConfig(3, 12, 30, 28 * 1e16, 20);
 
-        classicConfigurations[1] = ClassicConfig(1, 0, 1000, 25 * 1e16, 10);
-        classicConfigurations[2] = ClassicConfig(3, 12, 4000, 25 * 1e16, 20);
-        classicConfigurations[3] = ClassicConfig(6, 15, 9500, 28 * 1e16, 30);
+        // classicConfigurations[1] = ClassicConfig(1, 0, 1000, 25 * 1e16, 10);
+        // classicConfigurations[2] = ClassicConfig(3, 12, 4000, 25 * 1e16, 20);
+        // classicConfigurations[3] = ClassicConfig(6, 15, 9500, 28 * 1e16, 30);
         classicConfigurations[4] = ClassicConfig(10, 18, 20000, 44 * 1e16, 40);
         classicConfigurations[5] = ClassicConfig(15, 21, 45500, 66 * 1e16, 50);
         classicConfigurations[6] = ClassicConfig(21, 24, 96000, 88 * 1e16, 60);
         classicConfigurations[7] = ClassicConfig(28, 27, 196500, 10 * 1e17, 70);
         classicConfigurations[8] = ClassicConfig(36, 30, 447000, 15 * 1e17, 70);
         classicConfigurations[9] = ClassicConfig(45, 33, 947500, 20 * 1e17, 80);
-        classicConfigurations[10] = ClassicConfig(
-            55,
-            36,
-            1948000,
-            30 * 1e17,
-            100
-        );
-        classicConfigurations[11] = ClassicConfig(
-            66,
-            39,
-            3948500,
-            40 * 1e17,
-            100
-        );
-        classicConfigurations[12] = ClassicConfig(
-            78,
-            42,
-            6949000,
-            50 * 1e17,
-            100
-        );
-        classicConfigurations[13] = ClassicConfig(
-            91,
-            45,
-            10949500,
-            60 * 1e17,
-            150
-        );
-        classicConfigurations[14] = ClassicConfig(
-            105,
-            48,
-            15950000,
-            70 * 1e17,
-            150
-        );
-        classicConfigurations[15] = ClassicConfig(
-            120,
-            51,
-            21950500,
-            80 * 1e17,
-            250
-        );
-        classicConfigurations[16] = ClassicConfig(
-            136,
-            54,
-            29451000,
-            90 * 1e17,
-            250
-        );
-        classicConfigurations[17] = ClassicConfig(
-            153,
-            57,
-            39451500,
-            11 * 1e17,
-            700
-        );
-        classicConfigurations[18] = ClassicConfig(
-            171,
-            60,
-            64450000,
-            13 * 1e17,
-            1000
-        );
-        classicConfigurations[19] = ClassicConfig(
-            190,
-            63,
-            114452500,
-            16 * 1e17,
-            1000
-        );
-        classicConfigurations[20] = ClassicConfig(
-            210,
-            67,
-            214453000,
-            15 * 1e17,
-            1000
-        );
+        classicConfigurations[10] = ClassicConfig(55, 36, 1948000, 30 * 1e17, 100);
+        classicConfigurations[11] = ClassicConfig(66, 39, 3948500, 40 * 1e17, 100);
+        classicConfigurations[12] = ClassicConfig(78, 42, 6949000, 50 * 1e17, 100);
+        classicConfigurations[13] = ClassicConfig(91, 45, 10949500, 60 * 1e17, 150);
+        classicConfigurations[14] = ClassicConfig(105, 48, 15950000, 70 * 1e17, 150);
+        classicConfigurations[15] = ClassicConfig(120, 51, 21950500, 80 * 1e17, 250);
+        classicConfigurations[16] = ClassicConfig(136, 54, 29451000, 90 * 1e17, 250);
+        classicConfigurations[17] = ClassicConfig(153, 57, 39451500, 11 * 1e17, 700);
+        classicConfigurations[18] = ClassicConfig(171, 60, 64450000, 13 * 1e17, 1000);
+        classicConfigurations[19] = ClassicConfig(190, 63, 114452500, 16 * 1e17, 1000);
+        classicConfigurations[20] = ClassicConfig(210, 67, 214453000, 15 * 1e17, 1000);
     }
 
     function getClassicConfig(uint256 level)
@@ -321,17 +249,9 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
 
     // @dev if a user is unable to access his wallet, his upline can make a change request
     // which must be approvef by 10 uplines before the admin can process it
-    function creatChangeWalletRequest(uint256 userID, address newWallet)
-        external
-    {
-        require(
-            userAddresses[users[userID].referralID] == msg.sender,
-            "Not allowed"
-        );
-        require(
-            changeWalletRequests[userID].newWallet == address(0),
-            "Request exists"
-        );
+    function creatChangeWalletRequest(uint256 userID, address newWallet) external {
+        require(userAddresses[users[userID].referralID] == msg.sender, "Not allowed");
+        require(changeWalletRequests[userID].newWallet == address(0), "Request exists");
         changeWalletRequests[userID].newWallet = newWallet;
         changeWalletRequests[userID].approvals.push(users[userID].referralID);
 
@@ -340,29 +260,17 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     }
 
     function deleteChangeWalletRequest(uint256 userID) external {
-        require(
-            userAddresses[users[userID].referralID] == msg.sender ||
-                userAddresses[userID] == msg.sender,
-            "Not allowed"
-        );
-        require(
-            changeWalletRequests[userID].newWallet != address(0),
-            "Request not found"
-        );
+        require( userAddresses[users[userID].referralID] == msg.sender || userAddresses[userID] == msg.sender, "Not allowed" );
+        require(changeWalletRequests[userID].newWallet != address(0), "Request not found");
 
         delete changeWalletRequests[userID];
         emit ChangeWalletRequestDeleted(userID);
     }
 
     function approveChangeWalletRequest(uint256 userID) external {
-        uint256 lastApprovingUserID = changeWalletRequests[userID].approvals[
-            changeWalletRequests[userID].approvals.length - 1
-        ];
+        uint256 lastApprovingUserID = changeWalletRequests[userID].approvals[changeWalletRequests[userID].approvals.length - 1];
         uint256 currentApprovingUserID = users[lastApprovingUserID].referralID;
-        require(
-            userAddresses[currentApprovingUserID] == msg.sender,
-            "Not allowed"
-        );
+        require(userAddresses[currentApprovingUserID] == msg.sender, "Not allowed");
 
         changeWalletRequests[userID].approvals.push(currentApprovingUserID);
 
@@ -370,20 +278,13 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     }
 
     function processChangeWalletRequest(uint256 userID) external onlyOwner {
-        require(
-            changeWalletRequests[userID].approvals.length >= 10,
-            "Not allowed"
-        );
+        require(changeWalletRequests[userID].approvals.length >= 10, "Not allowed");
         userAddresses[userID] = changeWalletRequests[userID].newWallet;
 
         emit WalletChanged(userID, changeWalletRequests[userID].newWallet);
     }
 
-    function _register(
-        uint256 referralID,
-        uint256 uplineID,
-        address addr
-    ) internal {
+    function _register(uint256 referralID, uint256 uplineID, address addr) internal {
         lastID++;
         userAddresses[lastID] = addr;
         users[lastID].referralID = referralID;
@@ -400,11 +301,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         emit NewUser(addr, lastID, referralID);
     }
 
-    function register(
-        uint256 referralID,
-        uint256 uplineID,
-        address addr
-    ) public validReferralID(referralID) {
+    function register(uint256 referralID, uint256 uplineID, address addr) public validReferralID(referralID) {
         require(live, "Not started");
         require(
             userAccounts[addr].length == 0,
@@ -413,11 +310,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         _register(referralID, uplineID, addr);
     }
 
-    function addAccount(
-        uint256 referralID,
-        uint256 uplineID,
-        address addr
-    ) public validReferralID(referralID) {
+    function addAccount(uint256 referralID, uint256 uplineID, address addr) public validReferralID(referralID) {
         require(live, "Not started");
         require(
             userAccounts[addr].length != 0,
@@ -445,15 +338,10 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
             // this is to the stop the system from paying the users for the days he didn't meetup
             if (
                 !users[users[id].referralID].imported ||
-                users[users[id].referralID].referrals.length -
-                    users[users[id].referralID].importedReferralCount >=
-                classicConfigurations[
-                    users[users[id].referralID].importClassicLevel - 1
-                ].exDirectReferral
+                users[users[id].referralID].referrals.length - users[users[id].referralID].importedReferralCount >=
+                classicConfigurations[users[users[id].referralID].importClassicLevel - 1].exDirectReferral
             ) {
-                users[users[id].referralID].activeDownlines[today] = users[
-                    users[id].referralID
-                ].referrals.length;
+                users[users[id].referralID].activeDownlines[today] = users[users[id].referralID].referrals.length;
             }
 
             uint256 upline = users[id].referralID;
@@ -461,14 +349,9 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
             for (uint256 i = 0; i < CLASSIC_REFERRAL_PERCENTS.length; i++) {
                 if (upline != 0) {
                     if (userAddresses[upline] != address(0)) {
-                        uint256 refAmount = feeAmount
-                            .mul(CLASSIC_REFERRAL_PERCENTS[i])
-                            .div(PERCENTS_DIVIDER);
+                        uint256 refAmount = feeAmount.mul(CLASSIC_REFERRAL_PERCENTS[i]).div(PERCENTS_DIVIDER);
                         refTotal = refTotal.add(refAmount);
-                        mint(
-                            userAddresses[upline],
-                            amountFromDollar(refAmount)
-                        );
+                        mint(userAddresses[upline], amountFromDollar(refAmount));
                         emit ClassicRefBonus(id, upline, i + 1);
                     }
                     upline = users[upline].referralID;
@@ -488,26 +371,14 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         emit NewActivation(msg.sender, id);
     }
 
-    function registerAndActivate(
-        uint256 referralID,
-        uint256 uplineID,
-        address addr
-    ) external {
+    function registerAndActivate(uint256 referralID, uint256 uplineID, address addr) external {
         register(referralID, uplineID, addr);
         activate(lastID);
     }
 
-    function addAndActivateMultipleAccounts(
-        uint256 referralID,
-        uint256 uplineID,
-        address addr,
-        uint256 no
-    ) external {
+    function addAndActivateMultipleAccounts(uint256 referralID, uint256 uplineID, address addr, uint256 no) external {
         require(no <= 50, "too many accounts, please enter 50 and below");
-        require(
-            balanceOf(msg.sender) >= ACTIVATION_FEE.mul(no),
-            "insufficient balance"
-        );
+        require(balanceOf(msg.sender) >= ACTIVATION_FEE.mul(no), "insufficient balance");
 
         for (uint256 i = 0; i < no; i++) {
             addAccount(referralID, uplineID, addr);
@@ -515,14 +386,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
-    function importClassicAccount(
-        address addr,
-        uint256 id,
-        uint256 referralID,
-        uint256 level,
-        uint256 downlinecount,
-        uint256 bal
-    ) external onlyOwner {
+    function importClassicAccount(address addr, uint256 id, uint256 referralID, uint256 level, uint256 downlinecount, uint256 bal) external onlyOwner {
         require(!live, "not allowed after going live");
         require(id > lastID, "Potential duplicate import");
         lastID = id;
@@ -541,11 +405,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     }
 
     // @dev returns the current unpaid earnings of the user
-    function withdawable(uint256 userID)
-        public
-        view
-        returns (uint256, uint256)
-    {
+    function withdawable(uint256 userID) public view returns (uint256, uint256) {
         User storage user = users[userID];
         uint256 amount = 0;
 
@@ -571,17 +431,12 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
                 user.classicEarningCount[lastLevel].add(earningCounter) <
                 classicConfigurations[lastLevel].earningDays
             ) {
-                amount = amount.add(
-                    classicConfigurations[lastLevel].dailyEarning
-                );
+                amount = amount.add(classicConfigurations[lastLevel].dailyEarning);
                 earningCounter = earningCounter.add(1);
             }
         }
 
-        return (
-            amount,
-            user.classicEarningCount[lastLevel].add(earningCounter)
-        );
+        return (amount, user.classicEarningCount[lastLevel].add(earningCounter));
     }
 
     function withdraw(uint256 userID) external {
@@ -589,18 +444,10 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         (uint256 dollarAmount, uint256 earningCounter) = withdawable(userID);
         require(dollarAmount > 0, "Nothing to withdraw");
         users[userID].classicCheckpoint = timeProvider.currentTime();
-        users[userID].classicEarningCount[
-            getClassicLevelAt(userID, timeProvider.currentTime())
-        ] = earningCounter;
+        users[userID].classicEarningCount[getClassicLevelAt(userID, timeProvider.currentTime())] = earningCounter;
         // @dev update the downline count (if empty) at this checkpoint for the next call to getLevelAt
-        if (
-            users[userID].activeDownlines[
-                getTheDayBefore(timeProvider.currentTime())
-            ] == 0
-        ) {
-            users[userID].activeDownlines[
-                getTheDayBefore(timeProvider.currentTime())
-            ] = users[userID].referrals.length;
+        if (users[userID].activeDownlines[getTheDayBefore(timeProvider.currentTime())] == 0) {
+            users[userID].activeDownlines[getTheDayBefore(timeProvider.currentTime())] = users[userID].referrals.length;
         }
         // for imported users, pay 50% of this earning from outstanding balance
         if (users[userID].imported && users[userID].outstandingBalance > 0) {
@@ -608,9 +455,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
             if (outstandingPayout > users[userID].outstandingBalance) {
                 outstandingPayout = users[userID].outstandingBalance;
             }
-            users[userID].outstandingBalance = users[userID]
-                .outstandingBalance
-                .sub(outstandingPayout);
+            users[userID].outstandingBalance = users[userID].outstandingBalance.sub(outstandingPayout);
             dollarAmount = dollarAmount.add(outstandingPayout);
         }
         totalPayout = totalPayout.add(dollarAmount);
@@ -627,37 +472,22 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         emit Withdrawal(msg.sender, dollarAmount);
     }
 
-    function getAccounts(address addr)
-        external
-        view
-        returns (uint256[] memory)
-    {
+    function getAccounts(address addr) external view returns (uint256[] memory) {
         return userAccounts[addr];
     }
 
     // @dev returns the classic level in which the user is qaulified to earn at the given timestamp
-    function getClassicLevelAt(uint256 userID, uint256 timestamp)
-        internal
-        view
-        returns (uint256)
-    {
+    function getClassicLevelAt(uint256 userID, uint256 timestamp) internal view returns (uint256) {
         User storage user = users[userID];
         uint256 directDownlineCount = user.referrals.length;
         if (directDownlineCount == 0) return 0;
 
         uint256 globalIndex = classicIndex;
-        if (
-            timestamp != timeProvider.currentTime() &&
-            classicActivationDays.length > 0
-        ) {
+        if (timestamp != timeProvider.currentTime() && classicActivationDays.length > 0) {
             for (uint256 i = classicActivationDays.length - 1; i >= 0; i--) {
                 if (classicActivationDays[i] <= timestamp) {
-                    directDownlineCount = user.activeDownlines[
-                        classicActivationDays[i]
-                    ];
-                    globalIndex = activeGlobalDownlines[
-                        classicActivationDays[i]
-                    ];
+                    directDownlineCount = user.activeDownlines[classicActivationDays[i]];
+                    globalIndex = activeGlobalDownlines[classicActivationDays[i]];
                     break;
                 }
             }
@@ -682,11 +512,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         return getClassicLevelAt(userID, timeProvider.currentTime());
     }
 
-    function getImpClassicLevel(uint256 userID)
-        external
-        view
-        returns (uint256)
-    {
+    function getImpClassicLevel(uint256 userID) external view returns (uint256) {
         return users[userID].importClassicLevel;
     }
 
@@ -694,10 +520,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         return amountFromDollar(ACTIVATION_FEE);
     }
 
-    function getUser(uint256 userID)
-        external
-        view
-        returns (
+    function getUser(uint256 userID) external  view returns (
             address addr,
             uint256 downlines,
             uint256 userClassicIndex,
@@ -726,11 +549,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         outstandingBalance = users[userID].outstandingBalance;
     }
 
-    function getReferrals(uint256 userID)
-        external
-        view
-        returns (uint256[] memory)
-    {
+    function getReferrals(uint256 userID) external view returns (uint256[] memory) {
         return users[userID].referrals;
     }
 
@@ -802,10 +621,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     function upgradeToPremium(uint256 userID, uint256 random) external {
         require(live, "Not launched yet");
         require(userID > 0 && userID <= lastID, "Invalid ID");
-        require(
-            balanceOf(msg.sender) >= amountFromDollar(UPGRADE_FEE),
-            "Insufficient balance"
-        );
+        require(balanceOf(msg.sender) >= amountFromDollar(UPGRADE_FEE), "Insufficient balance");
 
         require(users[userID].classicIndex > 0, "Classic not activated");
 
@@ -814,27 +630,15 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         _burn(msg.sender, amountFromDollar(UPGRADE_FEE));
 
         uint256 sponsorID = getPremiumSponsor(userID, 0);
-        sendPayout(
-            userAddresses[sponsorID],
-            amountFromDollar(UPGRADE_FEE.div(2))
-        );
-        emit PremiumReferralPayout(
-            sponsorID,
-            userID,
-            amountFromDollar(UPGRADE_FEE.div(2))
-        );
+        sendPayout(userAddresses[sponsorID], amountFromDollar(UPGRADE_FEE.div(2)));
+        emit PremiumReferralPayout(sponsorID, userID, amountFromDollar(UPGRADE_FEE.div(2)));
 
         uint256 uplineID = sponsorID;
         if (user.uplineID > 0) {
             uplineID = user.uplineID;
         }
 
-        uint256 matrixUpline = getAvailableUplineInMatrix(
-            uplineID,
-            1,
-            true,
-            random
-        );
+        uint256 matrixUpline = getAvailableUplineInMatrix(uplineID, 1, true, random);
         matrices[userID][1].registered = true;
         matrices[userID][1].uplineID = matrixUpline;
         users[userID].premiumLevel = 1;
@@ -853,11 +657,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         return userID == 1 || users[userID].premiumLevel > 0;
     }
 
-    function getPremiumSponsor(uint256 userID, uint256 callCount)
-        public
-        view
-        returns (uint256)
-    {
+    function getPremiumSponsor(uint256 userID, uint256 callCount) public view returns (uint256) {
         if (callCount >= 10) {
             return 1;
         }
@@ -871,11 +671,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     // @dev returns the upline of the user in the supplied part.
     // part must be 2 and above.
     // part 1 should use the get getPremiumSponsor
-    function getUplineInPart(
-        uint256 userID,
-        uint256 part,
-        int256 callDept
-    ) private view returns (uint256) {
+    function getUplineInPart(uint256 userID, uint256 part, int256 callDept) private view returns (uint256) {
         require(part > 1, "Invalid part for getUplineInPart");
         if (matrices[userID][part].registered) {
             return matrices[userID][part].uplineID;
@@ -896,10 +692,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     // @dev return user ID that has space in the matrix of the supplied upline ID
     // @dev uplineID must be a premium account in the supplied part
     function getAvailableUplineInMatrix(
-        uint256 uplineID,
-        uint256 part,
-        bool traverseDown,
-        uint256 random
+        uint256 uplineID, uint256 part, bool traverseDown, uint256 random
     ) public view returns (uint256) {
         require(uplineID > 0, "Zero upline");
         require(matrices[uplineID][part].registered, "Upline not in part");
@@ -935,21 +728,11 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
             if (random > arraySize) {
                 random = arraySize % random;
             }
-            referrer = getAvailableUplineInMatrix(
-                referrals[random],
-                part,
-                false,
-                random
-            );
+            referrer = getAvailableUplineInMatrix(referrals[random], part, false, random);
 
             if (referrer == 0) {
                 for (uint256 i = previousLineSize; i < arraySize; i++) {
-                    referrer = getAvailableUplineInMatrix(
-                        referrals[random],
-                        part,
-                        false,
-                        random
-                    );
+                    referrer = getAvailableUplineInMatrix(referrals[random], part, false, random);
                     if (referrer != 0) {
                         break;
                     }
@@ -961,67 +744,36 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         return referrer;
     }
 
-    function hasEmptyLegs(uint256 userID, uint256 part)
-        private
-        view
-        returns (bool)
-    {
-        return
-            matrices[userID][part].left == 0 ||
-            matrices[userID][part].right == 0;
+    function hasEmptyLegs(uint256 userID, uint256 part) private view returns (bool) {
+        return matrices[userID][part].left == 0 || matrices[userID][part].right == 0;
     }
 
-    function sendMatrixPayout(uint256 fromID, uint256 level)
-        private
-        returns (uint256)
-    {
+    function sendMatrixPayout(uint256 fromID, uint256 level) private returns (uint256) {
         uint256 part = getPartFromLevel(level);
-        uint256 beneficiary = getUplineAtBlock(
-            fromID,
-            part,
-            levelConfigurations[level].paymentGeneration
-        );
+        uint256 beneficiary = getUplineAtBlock(fromID, part, levelConfigurations[level].paymentGeneration);
         // @dev this may happen as the imported data is not trusted to be in the right format
-        if (
-            matrixPayoutCount[beneficiary][level] >=
-            levelConfigurations[level].numberOfPayments &&
-            beneficiary != 1
-        ) {
+        if (matrixPayoutCount[beneficiary][level] >= levelConfigurations[level].numberOfPayments && beneficiary != 1) {
             return beneficiary;
         }
 
-        matrixPayoutCount[beneficiary][level] = matrixPayoutCount[beneficiary][
-            level
-        ].add(1);
+        matrixPayoutCount[beneficiary][level] = matrixPayoutCount[beneficiary][level].add(1);
         if (users[beneficiary].premiumLevel < level) {
             return beneficiary;
         }
 
-        sendPayout(
-            userAddresses[beneficiary],
-            amountFromDollar(levelConfigurations[level].perDropEarning)
-        );
-        emit MatrixPayout(
-            beneficiary,
-            fromID,
-            levelConfigurations[level].perDropEarning
-        );
+        sendPayout(userAddresses[beneficiary], amountFromDollar(levelConfigurations[level].perDropEarning));
+        emit MatrixPayout(beneficiary, fromID, levelConfigurations[level].perDropEarning);
 
         return beneficiary;
     }
 
-    function getUplineAtBlock(
-        uint256 userID,
-        uint256 part,
-        uint256 depth
-    ) private returns (uint256) {
+    function getUplineAtBlock(uint256 userID, uint256 part, uint256 depth) private returns (uint256) {
         if (userID == 1) return 1;
         if (depth == 1) {
             return matrices[userID][part].uplineID;
         }
 
-        return
-            getUplineAtBlock(matrices[userID][part].uplineID, part, depth - 1);
+        return getUplineAtBlock(matrices[userID][part].uplineID, part, depth - 1);
     }
 
     function moveToNextLevel(uint256 userID, uint256 random) private {
@@ -1029,10 +781,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
 
         uint256 newLevel = users[userID].premiumLevel + 1;
         // @dev add to matrix if change in level triggers change in part
-        if (
-            getPartFromLevel(newLevel) >
-            getPartFromLevel(users[userID].premiumLevel)
-        ) {
+        if ( getPartFromLevel(newLevel) > getPartFromLevel(users[userID].premiumLevel)) {
             addToMatrix(userID, newLevel, random);
         }
         users[userID].premiumLevel = newLevel;
@@ -1060,19 +809,10 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         traversalDept = dept;
     }
 
-    function addToMatrix(
-        uint256 userID,
-        uint256 level,
-        uint256 random
-    ) private {
+    function addToMatrix(uint256 userID, uint256 level, uint256 random) private {
         uint256 part = getPartFromLevel(level);
         uint256 uplineID = getUplineInPart(userID, part, 0);
-        uint256 matrixUpline = getAvailableUplineInMatrix(
-            uplineID,
-            part,
-            true,
-            random
-        );
+        uint256 matrixUpline = getAvailableUplineInMatrix(uplineID, part, true, random);
         matrices[userID][part].registered = true;
         matrices[userID][part].uplineID = matrixUpline;
         if (matrices[matrixUpline][part].left == 0) {
@@ -1087,9 +827,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
             users[userID].premiumLevel
         ];
 
-        return
-            lineCount ==
-            levelConfigurations[users[userID].premiumLevel].numberOfPayments;
+        return lineCount == levelConfigurations[users[userID].premiumLevel].numberOfPayments;
     }
 
     function getPartFromLevel(uint256 level) private pure returns (uint256) {
@@ -1111,24 +849,12 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         return 6;
     }
 
-    function getMatrixUpline(uint256 userID, uint256 part)
-        external
-        view
-        returns (uint256)
-    {
+    function getMatrixUpline(uint256 userID, uint256 part) external view returns (uint256) {
         return matrices[userID][part].uplineID;
     }
 
-    function getDirectLegs(uint256 userID, uint256 level)
-        external
-        view
-        returns (
-            uint256 left,
-            uint256 leftLevel,
-            uint256 right,
-            uint256 rightLevel
-        )
-    {
+    function getDirectLegs(uint256 userID, uint256 level) external  view returns (
+            uint256 left, uint256 leftLevel, uint256 right, uint256 rightLevel) {
         require(users[userID].premiumLevel >= level, "Invalid level");
         uint256 part = getPartFromLevel(level);
 
