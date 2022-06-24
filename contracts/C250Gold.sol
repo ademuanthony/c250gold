@@ -103,13 +103,13 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
 
     function buildClassicConfig() private {
         // @dev lower global requirement for testing
-        classicConfigurations[1] = ClassicConfig(1, 0, 10, 25 * 1e16, 10);
-        classicConfigurations[2] = ClassicConfig(3, 12, 20, 25 * 1e16, 20);
-        classicConfigurations[3] = ClassicConfig(3, 12, 30, 28 * 1e16, 20);
+        // classicConfigurations[1] = ClassicConfig(1, 0, 10, 25 * 1e16, 10);
+        // classicConfigurations[2] = ClassicConfig(3, 12, 20, 25 * 1e16, 20);
+        // classicConfigurations[3] = ClassicConfig(3, 12, 30, 28 * 1e16, 20);
 
-        // classicConfigurations[1] = ClassicConfig(1, 0, 1000, 25 * 1e16, 10);
-        // classicConfigurations[2] = ClassicConfig(3, 12, 4000, 25 * 1e16, 20);
-        // classicConfigurations[3] = ClassicConfig(6, 15, 9500, 28 * 1e16, 30);
+        classicConfigurations[1] = ClassicConfig(1, 0, 1000, 25 * 1e16, 10);
+        classicConfigurations[2] = ClassicConfig(3, 12, 4000, 25 * 1e16, 20);
+        classicConfigurations[3] = ClassicConfig(6, 15, 9500, 28 * 1e16, 30);
         classicConfigurations[4] = ClassicConfig(10, 18, 20000, 44 * 1e16, 40);
         classicConfigurations[5] = ClassicConfig(15, 21, 45500, 66 * 1e16, 50);
         classicConfigurations[6] = ClassicConfig(21, 24, 96000, 88 * 1e16, 60);
@@ -386,7 +386,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
-    function importClassicAccount(address addr, uint256 id, uint256 referralID, uint256 level, uint256 downlinecount, uint256 bal) external onlyOwner {
+    function importClassicAccount(address addr, uint256 id, uint256 referralID, uint256 classicLevel, uint256 premiumLevel, uint256 downlinecount, uint256 bal) external onlyOwner {
         require(!live, "not allowed after going live");
         require(id > lastID, "Potential duplicate import");
         lastID = id;
@@ -394,7 +394,8 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         users[id].imported = true;
         users[id].referralID = referralID;
         users[id].classicIndex = classicIndex;
-        users[id].importClassicLevel = level;
+        users[id].importClassicLevel = classicLevel;
+        users[id].premiumLevel = premiumLevel;
         users[id].importedReferralCount = downlinecount;
         users[id].outstandingBalance = bal;
         userAddresses[id] = addr;
@@ -822,6 +823,54 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
+    ImportPart1MatrixOptions struct {
+        uint256 userID;
+        uint256 part;
+        uint256 uplineID;
+        uint256 left;
+        uint256 right;
+        
+        uint256 earningL1;
+        uint256 earningL2;
+        uint256 earningL3;
+        uint256 earningL4;
+    }
+
+    function importPart1LagacyMatrix(ImportMatrixOptions calldata options) external ownerOnly {
+        require(!live, "Import not allowed after launch");
+        require(users[options.userID].classicIndex > 0, "Classic not imported");
+        matrices[options.userID][options.part].registered = true;
+        matrices[options.userID][options.part].uplineID = options.uplineID;
+        matrices[options.userID][options.part].left = options.left;
+        matrices[options.userID][options.part].right = options.right;
+
+        if(options.part == 1) {
+            matrixPayoutCount[options.userID][1] = options.earningL1;
+            matrixPayoutCount[options.userID][2] = options.earningL2;
+        } else  if(options.part == 2) {
+            matrixPayoutCount[options.userID][3] = options.earningL1;
+            matrixPayoutCount[options.userID][4] = options.earningL2;
+            matrixPayoutCount[options.userID][5] = options.earningL3;
+        } else  if(options.part == 3) {
+            matrixPayoutCount[options.userID][6] = options.earningL1;
+            matrixPayoutCount[options.userID][7] = options.earningL2;
+            matrixPayoutCount[options.userID][8] = options.earningL3;
+        } else  if(options.part == 4) {
+            matrixPayoutCount[options.userID][9] = options.earningL1;
+            matrixPayoutCount[options.userID][10] = options.earningL2;
+            matrixPayoutCount[options.userID][11] = options.earningL3;
+        } else  if(options.part == 5) {
+            matrixPayoutCount[options.userID][12] = options.earningL1;
+            matrixPayoutCount[options.userID][13] = options.earningL2;
+            matrixPayoutCount[options.userID][14] = options.earningL3;
+        } else  if(options.part == 6) {
+            matrixPayoutCount[options.userID][15] = options.earningL1;
+            matrixPayoutCount[options.userID][16] = options.earningL2;
+            matrixPayoutCount[options.userID][17] = options.earningL3;
+            matrixPayoutCount[options.userID][18] = options.earningL4;
+        }
+    }
+
     function levelCompleted(uint256 userID) private view returns (bool) {
         uint256 lineCount = matrixPayoutCount[userID][
             users[userID].premiumLevel
@@ -831,13 +880,14 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     }
 
     function getPartFromLevel(uint256 level) private pure returns (uint256) {
+        require(level > 0 && <= 18, "Invalid premium level");
         if (level < 3) {
             return 1;
         }
         if (level < 6) {
             return 2;
         }
-        if (level < 8) {
+        if (level < 9) {
             return 3;
         }
         if (level < 12) {
