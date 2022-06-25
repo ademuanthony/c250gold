@@ -7,7 +7,7 @@ const hre = require("hardhat");
 
 async function main() {
   // We get the contract to deploy
-  const C250GoldPresale = await hre.ethers.getContractFactory("C250GoldPresale");
+  const C250GoldPresale = await hre.ethers.getContractFactory("C250GoldPresale2");
   const c250Gold = await C250GoldPresale.deploy(process.env.TICKET);
 
   await c250Gold.deployed();

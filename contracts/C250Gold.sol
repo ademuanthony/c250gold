@@ -2,6 +2,7 @@
  *SPDX-License-Identifier: UNLICENSED
  */
 pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -10,7 +11,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
 import "./C250PriceOracle.sol";
 import "./TimeProvider.sol";
@@ -823,7 +823,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         }
     }
 
-    ImportPart1MatrixOptions struct {
+    struct ImportMatrixOptions {
         uint256 userID;
         uint256 part;
         uint256 uplineID;
@@ -836,7 +836,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         uint256 earningL4;
     }
 
-    function importPart1LagacyMatrix(ImportMatrixOptions calldata options) external ownerOnly {
+    function importPart1LagacyMatrix(ImportMatrixOptions calldata options) external onlyOwner {
         require(!live, "Import not allowed after launch");
         require(users[options.userID].classicIndex > 0, "Classic not imported");
         matrices[options.userID][options.part].registered = true;
@@ -880,7 +880,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     }
 
     function getPartFromLevel(uint256 level) private pure returns (uint256) {
-        require(level > 0 && <= 18, "Invalid premium level");
+        require(level > 0 && level <= 18, "Invalid premium level");
         if (level < 3) {
             return 1;
         }
