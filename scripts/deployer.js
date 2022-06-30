@@ -13,12 +13,15 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
-  const MockC250PriceOracle = await hre.ethers.getContractFactory("MockC250PriceOracle");
-  const mockC250PriceOracle = await MockC250PriceOracle.deploy();
+  const TimeProvider = await hre.ethers.getContractFactory("TimeProvider");
+  const timeProvider = await TimeProvider.deploy();
+
+  await timeProvider.deployed()
+  console.log("timeProvider deployed to:", timeProvider.address);
 
   // We get the contract to deploy
   const C250Gold = await hre.ethers.getContractFactory("C250Gold");
-  const c250Gold = await C250Gold.deploy(mockC250PriceOracle.address, process.env.TREASURY);
+  const c250Gold = await C250Gold.deploy('0xee2733D0cb50A2a4F177C68B728d91561C5B800f', timeProvider.address, process.env.TREASURY);
 
   await c250Gold.deployed();
 
