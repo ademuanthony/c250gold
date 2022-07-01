@@ -608,6 +608,8 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         uint256 amount
     );
 
+    uint256 public premiumCounter;
+
     event NewLevel(uint256 indexed userID, uint256 indexed level);
 
     // @dev user's matric for each part
@@ -679,6 +681,8 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
             matrices[matrixUpline][1].right = userID;
             moveToNextLevel(matrixUpline, random);
         }
+
+        premiumCounter = premiumCounter.add(1);
     }
 
     function accountIsInPremium(uint256 userID) public view returns (bool) {
@@ -896,6 +900,8 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
             matrixPayoutCount[options.userID][17] = options.earningL3;
             matrixPayoutCount[options.userID][18] = options.earningL4;
         }
+
+        premiumCounter = premiumCounter.add(1);
     }
 
     function levelCompleted(uint256 userID) private view returns (bool) {
