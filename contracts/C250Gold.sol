@@ -87,6 +87,8 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
     mapping(uint256 => User) public users;
     // @dev list of accounts associated with an address
     mapping(address => uint256[]) public userAccounts;
+    // @dev holds the list of presale buyers and their holdings which can only be used for account activation (burning)
+    mapping(address=> uint256) public presaleBalance;
 
     constructor(
         address _priceOracle, address _timeProvider, address _treasury
@@ -319,13 +321,38 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
         _register(referralID, uplineID, addr);
     }
 
+    function burn(address account, uint256 amount) internal {
+        _burn(account, amount);
+        if(presaleBalance[account] > 0) {
+            if (presaleBalance[account] > amount) {
+                presaleBalance[account] = presaleBalance[account].sub(amount);
+                return;
+            }
+            delete presaleBalance[account];
+        }
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) override internal {
+        if(presaleBalance[from] == 0 || to == address(0)) return;
+        require(presaleBalance[from].add(amount) <= balanceOf(from), "Selling presale token");
+    }
+
+    function addPresaleBalance(address account, uint256 amount) external onlyOwner {
+        require(!live, "Already launched");
+        presaleBalance[account] = amount;
+    }
+
+    function unusedPresaleBalance(address account) external view returns(uint256) {
+        return presaleBalance[account];
+    }
+
     function activate(uint256 id) public nonReentrant {
         require(live, "Not started");
         require(userAddresses[id] != address(0), "Account not registered");
         require(users[id].classicIndex == 0, "Already activated");
         uint256 feeAmount = amountFromDollar(ACTIVATION_FEE);
         require(balanceOf(msg.sender) >= feeAmount, "Insufficient balance");
-        _burn(msg.sender, feeAmount);
+        burn(msg.sender, feeAmount);
         classicIndex++;
         users[id].classicIndex = classicIndex;
         users[id].classicCheckpoint = timeProvider.currentTime();
@@ -628,7 +655,7 @@ contract C250Gold is ERC20, Ownable, ReentrancyGuard {
 
         User storage user = users[userID];
 
-        _burn(msg.sender, amountFromDollar(UPGRADE_FEE));
+        burn(msg.sender, amountFromDollar(UPGRADE_FEE));
 
         uint256 sponsorID = getPremiumSponsor(userID, 0);
         sendPayout(userAddresses[sponsorID], amountFromDollar(UPGRADE_FEE.div(2)));

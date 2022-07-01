@@ -464,3 +464,48 @@ describe("Upgrade to Premimium", function() {
   });
 
 });
+
+describe("Accounts with presale balance", function() {
+  it("Should not be able to transfer the presale balance", async function() {
+    const contract = await deployContract()
+
+    const [...addr] = await ethers.getSigners()
+    const bal = await contract.balanceOf(addr[0].address)
+    await contract.addPresaleBalance(addr[0].address, bal)
+
+    await contract.launch()
+
+    await expect(contract.transfer(addr[1].address, ethers.utils.parseEther("14353.435"))).to.be.revertedWith("Selling presale token")
+  })
+
+  it("Should be able to make transfer after using presale balance for activation(burning)", async function() {
+    const contract = await deployContract()
+
+    const [...addr] = await ethers.getSigners()
+    await contract.addPresaleBalance(addr[1].address, ethers.utils.parseEther("9001"))
+
+    await contract.launch()
+
+    await contract.transfer(addr[1].address, ethers.utils.parseEther("20000"))
+
+    await expect(contract.connect(addr[1]).transfer(addr[2].address, ethers.utils.parseEther("10000"))).not.be.reverted
+  })
+
+  it("Should reduce presale balance with account activation", async function() {
+    const contract = await deployContract()
+
+    const [...addr] = await ethers.getSigners()
+    const initBalance = ethers.utils.parseEther("9001")
+    await contract.addPresaleBalance(addr[1].address, initBalance)
+
+    await contract.launch()
+
+    contract.transfer(addr[1].address, initBalance)
+
+    await contract.connect(addr[1]).registerAndActivate(1, 0, addr[1].address)
+
+    const preBal = await contract.unusedPresaleBalance(addr[1].address)
+
+    expect(preBal).to.be.equal(initBalance.sub(ethers.utils.parseEther("2.5")))
+  })
+})
