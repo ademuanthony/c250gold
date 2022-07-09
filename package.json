@@ -1,7 +1,7 @@
 {
   "name": "c250gold",
   "scripts": {
-    "test": "npx hardhat test --network localhost"
+    "test": "npx hardhat test"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
